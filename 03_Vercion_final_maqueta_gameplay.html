@@ -1,0 +1,363 @@
+<!--obs_overlay_dragon_primordial — MAQUETA (vista previa con fondo oscuro y panel de instrucciones)-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dragon Primordial — Maqueta del Overlay</title>
+<style>
+  :root{
+    --text-primary:#e6edf3;
+    --text-muted:#8b949e;
+    --surface-1:#161b22;
+    --border:#30363d;
+    --border-strong:#444c56;
+    --radius:8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; font-family: 'Segoe UI', sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 40px; }
+
+  .preview-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-align: center;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .screen {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #0d1117;
+    border-radius: 8px;
+    border: 0.5px solid var(--border-strong);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Gameplay area placeholder */
+  .gameplay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #0a1628 0%, #0d2137 50%, #0a1628 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gameplay-text {
+    font-size: 13px;
+    color: #1e3a5f;
+    letter-spacing: 2px;
+  }
+
+  /* TOP BAR */
+  .top-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 32px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .channel-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #e84545;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .dot-sep { color: #444; font-size: 10px; }
+  .game-tag {
+    font-size: 10px;
+    color: #aaa;
+    letter-spacing: 1px;
+  }
+  .live-badge {
+    margin-left: auto;
+    background: #e84545;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+
+  /* DRAGON AVATAR BOX */
+  .avatar-box {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    width: 110px;
+    background: rgba(0,0,0,0.75);
+    border: 1.5px solid #8b1a1a;
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .avatar-img {
+    width: 72px;
+    height: 72px;
+    border-radius: 6px;
+    background: #1a0505;
+    border: 1px solid #5a0f0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+  }
+  .avatar-name {
+    font-size: 9px;
+    color: #e84545;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .mic-bar {
+    width: 100%;
+    height: 3px;
+    background: #1a0505;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .mic-fill {
+    height: 100%;
+    width: 0%;
+    background: #e84545;
+    border-radius: 2px;
+    transition: width 0.1s;
+  }
+
+  /* CHAT BOX */
+  .chat-box {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 160px;
+    background: rgba(0,0,0,0.7);
+    border: 0.5px solid #333;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .chat-title {
+    font-size: 9px;
+    color: #666;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    border-bottom: 0.5px solid #222;
+    padding-bottom: 3px;
+  }
+  .chat-msg {
+    font-size: 9px;
+    line-height: 1.4;
+  }
+  .chat-user { font-weight: 700; }
+  .c1 { color: #e84545; }
+  .c2 { color: #45abe8; }
+  .c3 { color: #e8c445; }
+  .chat-text { color: #ccc; }
+
+  /* ALERT BANNER */
+  .alert {
+    position: absolute;
+    top: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.85);
+    border: 1px solid #e84545;
+    border-radius: 6px;
+    padding: 5px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .alert-icon { font-size: 12px; }
+  .alert-text { font-size: 10px; color: #fff; letter-spacing: 0.5px; }
+  .alert-name { color: #e84545; font-weight: 700; }
+
+  /* SOCIAL LINKS */
+  .socials {
+    position: absolute;
+    top: 38px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .social-pill {
+    background: rgba(0,0,0,0.75);
+    border: 0.5px solid #333;
+    border-radius: 20px;
+    padding: 3px 8px 3px 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: #aaa;
+  }
+  .social-icon { font-size: 10px; }
+
+  /* BOTTOM BAR */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 8px;
+    background: linear-gradient(90deg, #e84545, #8b1a1a, #e84545);
+    opacity: 0.6;
+  }
+
+  /* CORNER DECORATION */
+  .corner-tl {
+    position: absolute;
+    top: 0; left: 0;
+    width: 40px; height: 40px;
+    border-top: 2px solid #e84545;
+    border-left: 2px solid #e84545;
+    border-radius: 8px 0 0 0;
+    opacity: 0.5;
+  }
+  .corner-tr {
+    position: absolute;
+    top: 0; right: 0;
+    width: 40px; height: 40px;
+    border-top: 2px solid #e84545;
+    border-right: 2px solid #e84545;
+    border-radius: 0 8px 0 0;
+    opacity: 0.5;
+  }
+
+  /* LABELS */
+  .labels-section {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .label-card {
+    background: var(--surface-1);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  .label-card.wide { grid-column: 1 / -1; }
+  .label-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .label-body {
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+  .label-code {
+    font-family: monospace;
+    font-size: 11px;
+    color: #e84545;
+    background: rgba(232,69,69,0.08);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+  @media (max-width: 700px){ .labels-section{ grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="preview-label">Vista previa del overlay — 1920×1080</p>
+
+<div class="screen">
+  <div class="gameplay">
+    <span class="gameplay-text">GAMEPLAY DE ROBLOX AQUÍ</span>
+  </div>
+
+  <div class="corner-tl"></div>
+  <div class="corner-tr"></div>
+
+  <div class="top-bar">
+    <span class="channel-name">Dragón Primordial</span>
+    <span class="dot-sep">•</span>
+    <span class="game-tag">BESTIAS Y MONSTRUOS</span>
+    <span class="live-badge">EN VIVO</span>
+  </div>
+
+  <div class="alert">
+    <span class="alert-icon">🔥</span>
+    <span class="alert-text"><span class="alert-name">JugadorX</span> siguió el canal</span>
+  </div>
+
+  <div class="socials">
+    <div class="social-pill"><span class="social-icon">▶</span> @DragonPrimordial</div>
+    <div class="social-pill"><span class="social-icon">💬</span> discord.gg/yWUcDuuuN</div>
+    <div class="social-pill"><span class="social-icon">🛒</span> builtbybit.com</div>
+  </div>
+
+  <div class="avatar-box">
+    <div class="avatar-img">🐲</div>
+    <div class="avatar-name">Dragón Primordial</div>
+    <div class="mic-bar"><div class="mic-fill" id="micfill"></div></div>
+  </div>
+
+  <div class="chat-box">
+    <div class="chat-title">Chat</div>
+    <div class="chat-msg"><span class="chat-user c1">BestiaFan: </span><span class="chat-text">ese lion tool es op 🔥</span></div>
+    <div class="chat-msg"><span class="chat-user c2">RobloxPro: </span><span class="chat-text">cuándo sale el dragón?</span></div>
+    <div class="chat-msg"><span class="chat-user c3">Era_Salvaje: </span><span class="chat-text">FURIA MÁXIMA!!!</span></div>
+  </div>
+
+  <div class="bottom-bar"></div>
+</div>
+
+<div class="labels-section">
+  <div class="label-card">
+    <div class="label-title">Avatar box</div>
+    <div class="label-body">Reemplazá el 🐲 con tu PNG del dragón via veadotube. Poné veadotube como fuente de ventana en OBS y superponelo encima de esta capa.</div>
+  </div>
+  <div class="label-card">
+    <div class="label-title">Colores del overlay</div>
+    <div class="label-body">Rojo: <span class="label-code">#e84545</span> · Oscuro: <span class="label-code">#0d1117</span> · Borde: <span class="label-code">#8b1a1a</span></div>
+  </div>
+  <div class="label-card">
+    <div class="label-title">Capas en OBS (orden)</div>
+    <div class="label-body">1. Roblox (captura de juego)<br>2. Overlay HTML (el archivo real, no esta maqueta)<br>3. Veadotube mini (PNG dragón)<br>4. Micrófono / alertas</div>
+  </div>
+  <div class="label-card">
+    <div class="label-title">Cómo usar el overlay real</div>
+    <div class="label-body">Descargalo como HTML, agregalo en OBS como <span class="label-code">Fuente de navegador</span>, ancho 1920 alto 1080. Esta maqueta es solo para ver cómo queda la distribución.</div>
+  </div>
+  <div class="label-card wide">
+    <div class="label-title">Efectos del overlay real</div>
+    <div class="label-body">🐉 Un dragón cruza la pantalla y escupe fuego · ☄️ Lluvia de meteoritos: ligera todo el tiempo y fuerte cada cierto rato. Los tiempos se cambian en el bloque <span class="label-code">CONFIG</span> al inicio del script.</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+  let w = 0, dir = 1;
+  setInterval(() => {
+    w += dir * (Math.random() * 15);
+    if (w > 90) dir = -1;
+    if (w < 5) dir = 1;
+    w = Math.max(0, Math.min(100, w));
+    const el = document.getElementById('micfill');
+    if (el) el.style.width = Math.round(w) + '%';
+  }, 120);
+</script>
+</body>
+</html>
