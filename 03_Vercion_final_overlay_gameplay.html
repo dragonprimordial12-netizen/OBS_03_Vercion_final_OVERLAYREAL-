@@ -1,0 +1,599 @@
+<!--obs_overlay_dragon_primordial — OVERLAY REAL (transparente) con dragón volador y lluvia de meteoritos-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Dragon Primordial — Overlay Gameplay (Real)</title>
+<script>
+/* Dentro de OBS = transparente. En un navegador normal se ve sobre fondo oscuro y se escala a la ventana.
+   Forzar modo OBS con:  ?obs */
+(function () {
+  var enOBS = !!window.obsstudio || /[?&]obs\b/.test(location.search);
+  document.documentElement.className = enOBS ? 'obs' : 'fuera';
+})();
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',sans-serif;background:transparent;}
+html.obs,html.obs body{width:1920px;height:1080px;}
+html.fuera,html.fuera body{background:#0d1117;}
+
+.stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;}
+html.fuera .stage{background:linear-gradient(135deg,#0a1628 0%,#0d2137 50%,#0a1628 100%);}
+
+/* ── EFECTOS: METEORITOS + FUEGO (canvas) ── */
+#fx{position:absolute;left:0;top:0;width:1920px;height:1080px;z-index:6;pointer-events:none;}
+
+/* ── DRAGÓN VOLADOR ── */
+#dragon{
+  position:absolute;left:0;top:0;z-index:7;
+  width:380px;height:calc(380px * 296 / 440);
+  display:none;pointer-events:none;
+  filter:drop-shadow(0 0 16px rgba(255,60,0,.45));
+  will-change:transform;
+}
+#dragon svg{width:100%;height:100%;display:block;}
+
+/* ── BARRA SUPERIOR ── */
+.top-bar{
+  position:absolute;top:0;left:0;right:0;
+  height:48px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.9) 0%,transparent 100%);
+  display:flex;align-items:center;
+  padding:0 24px;gap:12px;
+  z-index:10;
+}
+.channel-name{
+  font-size:18px;font-weight:900;
+  color:#e84545;letter-spacing:3px;
+  text-transform:uppercase;
+  text-shadow:0 0 20px #cc0000;
+}
+.dot-sep{color:#444;font-size:14px;}
+.game-tag{font-size:14px;color:#888;letter-spacing:2px;text-transform:uppercase;}
+.live-badge{
+  margin-left:auto;
+  background:#e84545;color:#fff;
+  font-size:12px;font-weight:900;
+  padding:4px 12px;border-radius:3px;
+  letter-spacing:2px;
+  box-shadow:0 0 12px #cc000088;
+  animation:livepulse 2s ease-in-out infinite;
+}
+@keyframes livepulse{
+  0%,100%{box-shadow:0 0 8px #cc000088;}
+  50%{box-shadow:0 0 20px #ff000099;}
+}
+
+/* ── ESQUINAS ── */
+.corner{position:absolute;width:70px;height:70px;border-color:#cc0000;border-style:solid;opacity:0.7;z-index:9;}
+.ctleft{top:20px;left:20px;border-width:2px 0 0 2px;border-radius:5px 0 0 0;}
+.ctright{top:20px;right:20px;border-width:2px 2px 0 0;border-radius:0 5px 0 0;}
+.cbleft{bottom:20px;left:20px;border-width:0 0 2px 2px;border-radius:0 0 0 5px;}
+.cbright{bottom:20px;right:20px;border-width:0 2px 2px 0;border-radius:0 0 5px 0;}
+.corner-tl,.corner-tr{position:absolute;top:0;width:40px;height:40px;border-top:2px solid #e84545;opacity:0.5;z-index:9;}
+.corner-tl{left:0;border-left:2px solid #e84545;border-radius:8px 0 0 0;}
+.corner-tr{right:0;border-right:2px solid #e84545;border-radius:0 8px 0 0;}
+
+/* ── BARRA INFERIOR ── */
+.bottom-bar{
+  position:absolute;bottom:0;left:0;right:0;
+  height:5px;z-index:10;
+  background:linear-gradient(90deg,transparent,#8b0000,#e84545,#ff0000,#e84545,#8b0000,transparent);
+}
+
+/* ── AVATAR BOX (esquina inf izquierda) ── */
+.avatar-box{
+  position:absolute;bottom:24px;left:24px;
+  width:180px;
+  background:rgba(0,0,0,0.82);
+  border:1.5px solid #8b1a1a;
+  border-radius:12px;
+  padding:12px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  z-index:10;
+  box-shadow:0 0 20px rgba(139,0,0,0.4);
+}
+.avatar-placeholder{
+  width:120px;height:120px;
+  border-radius:8px;
+  background:#100303;
+  border:1px solid #5a0f0f;
+  display:flex;align-items:center;justify-content:center;
+  font-size:64px;line-height:1;
+}
+.avatar-name{
+  font-size:11px;color:#e84545;
+  font-weight:700;letter-spacing:2px;
+  text-align:center;text-transform:uppercase;
+}
+.mic-bar{width:100%;height:4px;background:#1a0505;border-radius:2px;overflow:hidden;}
+.mic-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,#cc0000,#ff4444);
+  border-radius:2px;transition:width 0.08s;
+}
+
+/* ── SOCIALES (esquina sup derecha) ── */
+.socials{
+  position:absolute;top:58px;right:24px;
+  display:flex;flex-direction:column;gap:6px;
+  z-index:10;
+}
+.social-pill{
+  background:rgba(0,0,0,0.8);
+  border:0.5px solid #3a1111;
+  border-radius:20px;
+  padding:5px 14px 5px 10px;
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;color:#aaa;
+  letter-spacing:0.5px;
+  backdrop-filter:blur(4px);
+}
+.social-icon{font-size:13px;}
+
+/* ── ALERTA (centro superior) ── */
+.alert{
+  position:absolute;top:58px;left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.88);
+  border:1px solid #e84545;
+  border-radius:8px;
+  padding:8px 20px;
+  display:flex;align-items:center;gap:8px;
+  z-index:10;
+  white-space:nowrap;
+  box-shadow:0 0 16px rgba(232,69,69,0.3);
+  animation:alertslide 0.4s ease both;
+}
+@keyframes alertslide{
+  from{opacity:0;transform:translateX(-50%) translateY(-10px);}
+  to{opacity:1;transform:translateX(-50%) translateY(0);}
+}
+.alert-icon{font-size:16px;}
+.alert-text{font-size:13px;color:#fff;letter-spacing:0.5px;}
+.alert-name{color:#e84545;font-weight:700;}
+
+/* ── CHAT (esquina inf derecha) ── */
+.chat-box{
+  position:absolute;bottom:24px;right:24px;
+  width:260px;
+  background:rgba(0,0,0,0.78);
+  border:0.5px solid #2a2a2a;
+  border-radius:10px;padding:12px;
+  display:flex;flex-direction:column;gap:6px;
+  z-index:10;
+  backdrop-filter:blur(4px);
+}
+.chat-title{
+  font-size:10px;color:#555;
+  letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:4px;
+  border-bottom:0.5px solid #1a1a1a;
+  padding-bottom:5px;
+}
+.chat-msg{font-size:11px;line-height:1.5;}
+.chat-user{font-weight:700;}
+.c1{color:#e84545;}
+.c2{color:#45abe8;}
+.c3{color:#e8c445;}
+.c4{color:#45e88a;}
+.chat-text{color:#ccc;}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+  <!-- EFECTOS (detrás de los paneles) -->
+  <canvas id="fx" width="1920" height="1080"></canvas>
+  <div id="dragon"><svg id="dragon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="-10 -14 440 296">
+  <defs>
+    <linearGradient id="cuerpo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b01010"/><stop offset="1" stop-color="#5a0000"/>
+    </linearGradient>
+    <linearGradient id="vientre" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9622f"/><stop offset="1" stop-color="#a03a1a"/>
+    </linearGradient>
+    <linearGradient id="ala" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#7a0a0a" stop-opacity=".95"/><stop offset="1" stop-color="#3d0000" stop-opacity=".95"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ALA LEJANA -->
+  <g id="ala-lejana" opacity=".8"><animateTransform attributeName="transform" type="rotate" values="14 205 112;-40 205 112;14 205 112" keyTimes="0;.5;1" calcMode="spline" keySplines=".4 0 .6 1;.4 0 .6 1" dur=".8s" begin="-0.12s" repeatCount="indefinite"/>
+    <path d="M205 112 L172 38 L104 30 Q124 50 90 72 Q118 80 104 108 Q142 102 160 118 Z" fill="#4a0000"/>
+    <path d="M205 112 L172 38 M172 38 L104 30 M172 38 L90 72 M172 38 L104 108" stroke="#240000" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- COLA -->
+  <path d="M132 128 C96 132 66 150 46 186 C36 204 24 214 6 220 C14 232 36 232 52 222 C70 212 74 200 84 190 C102 166 122 158 140 150 Z" fill="url(#cuerpo)"/>
+  <path d="M6 220 L-4 206 L22 210 Z" fill="#2a0000"/>
+  <!-- espinas cola -->
+  <g fill="#2a2a2a">
+    <path d="M60 156 L54 140 L70 150 Z"/><path d="M84 142 L80 126 L94 138 Z"/><path d="M108 134 L106 118 L118 132 Z"/>
+  </g>
+
+  <!-- PATA TRASERA -->
+  <path d="M170 150 C168 172 160 186 148 194 L164 196 C172 190 184 172 190 152 Z" fill="#6b0000"/>
+  <path d="M148 194 L140 200 M156 196 L152 204 M164 196 L166 204" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- CUERPO -->
+  <path d="M120 126 C128 92 200 84 252 104 C280 114 292 128 280 142 C252 164 172 168 132 152 C114 144 112 134 120 126 Z" fill="url(#cuerpo)"/>
+  <!-- vientre -->
+  <path d="M136 148 C176 162 246 158 274 140 C262 156 226 166 184 166 C160 164 142 158 136 148 Z" fill="url(#vientre)"/>
+  <!-- espinas dorsales -->
+  <g fill="#2a2a2a">
+    <path d="M150 100 L146 84 L162 96 Z"/><path d="M174 92 L172 74 L188 90 Z"/><path d="M200 89 L200 71 L214 89 Z"/><path d="M226 91 L228 74 L240 94 Z"/>
+  </g>
+
+  <!-- PATA DELANTERA -->
+  <path d="M240 150 C246 170 256 182 270 188 L280 180 C270 172 262 160 258 146 Z" fill="#7a0a0a"/>
+  <path d="M270 188 L282 190 M276 184 L288 184 M262 186 L268 196" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- CUELLO -->
+  <path d="M244 100 C276 84 308 70 332 64 L346 92 C320 102 296 120 274 142 C284 128 282 114 262 108 Z" fill="url(#cuerpo)"/>
+  <path d="M268 140 C290 118 318 104 344 94 C322 116 300 132 276 146 Z" fill="url(#vientre)" opacity=".9"/>
+  <g fill="#2a2a2a">
+    <path d="M262 92 L258 76 L274 88 Z"/><path d="M286 82 L284 66 L300 78 Z"/><path d="M310 72 L310 56 L324 70 Z"/>
+  </g>
+
+  <!-- MANDÍBULA INFERIOR (abierta) -->
+  <path d="M344 88 L396 104 C402 108 398 116 390 116 L356 108 C344 104 338 96 344 88 Z" fill="#6b0000"/>
+  <!-- CABEZA -->
+  <path d="M322 62 C332 44 362 44 378 58 L408 68 C414 72 412 80 404 82 L380 84 C374 92 354 96 340 90 C326 84 316 74 322 62 Z" fill="url(#cuerpo)"/>
+  <!-- dientes -->
+  <g fill="#f2ead8">
+    <path d="M386 84 L390 92 L394 84 Z"/><path d="M398 82 L401 89 L405 82 Z"/><path d="M372 88 L375 95 L379 88 Z"/>
+    <path d="M384 108 L388 101 L392 108 Z"/>
+  </g>
+  <!-- cuernos -->
+  <path d="M334 52 C322 34 302 26 288 30 C304 36 316 46 326 60 Z" fill="#2a2a2a"/>
+  <path d="M348 47 C342 28 324 16 310 16 C326 24 336 38 342 54 Z" fill="#3a3a3a"/>
+  <!-- ceja + ojo -->
+  <path d="M348 56 L372 60" stroke="#2a0000" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="360" cy="64" r="6" fill="#40e0e0"/>
+  <ellipse cx="361" cy="64" rx="1.8" ry="4.5" fill="#003333"/>
+  <circle cx="358" cy="62" r="1.6" fill="#fff" opacity=".9"/>
+  <!-- fosa nasal -->
+  <ellipse cx="402" cy="72" rx="2.6" ry="1.8" fill="#1a0000"/>
+
+  <!-- ALA CERCANA -->
+  <g id="ala-cercana"><animateTransform attributeName="transform" type="rotate" values="14 214 108;-40 214 108;14 214 108" keyTimes="0;.5;1" calcMode="spline" keySplines=".4 0 .6 1;.4 0 .6 1" dur=".8s" repeatCount="indefinite"/>
+    <path d="M214 108 L178 26 L92 10 Q118 36 74 62 Q110 72 90 102 Q138 94 162 116 Z" fill="url(#ala)"/>
+    <path d="M214 108 L178 26" stroke="#2a0000" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M178 26 L92 10 M178 26 L74 62 M178 26 L90 102" stroke="#2a0000" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <path d="M178 26 L172 12 L186 22 Z" fill="#2a2a2a"/>
+  </g>
+</svg>
+</div>
+
+  <!-- ESQUINAS -->
+  <div class="corner-tl"></div>
+  <div class="corner-tr"></div>
+  <div class="corner ctleft"></div>
+  <div class="corner ctright"></div>
+  <div class="corner cbleft"></div>
+  <div class="corner cbright"></div>
+
+  <!-- BARRA SUPERIOR -->
+  <div class="top-bar">
+    <span class="channel-name">Dragón Primordial</span>
+    <span class="dot-sep">•</span>
+    <span class="game-tag">Bestias y Monstruos</span>
+    <span class="live-badge">EN VIVO</span>
+  </div>
+
+  <!-- ALERTA -->
+  <div class="alert" id="alerta">
+    <span class="alert-icon">&#128293;</span>
+    <span class="alert-text"><span class="alert-name">JugadorX</span> siguió el canal</span>
+  </div>
+
+  <!-- SOCIALES -->
+  <div class="socials">
+    <div class="social-pill"><span class="social-icon">&#9654;</span> @DragonPrimordial</div>
+    <div class="social-pill"><span class="social-icon">&#128172;</span> discord.gg/yWUcDuuuN</div>
+    <div class="social-pill"><span class="social-icon">&#128722;</span> builtbybit.com</div>
+  </div>
+
+  <!-- AVATAR BOX -->
+  <div class="avatar-box">
+    <div class="avatar-placeholder">&#128050;</div>
+    <div class="avatar-name">Dragón Primordial</div>
+    <div class="mic-bar"><div class="mic-fill" id="micfill"></div></div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-box">
+    <div class="chat-title">Chat en vivo</div>
+    <div class="chat-msg"><span class="chat-user c1">BestiaFan: </span><span class="chat-text">ese lion tool es op 🔥</span></div>
+    <div class="chat-msg"><span class="chat-user c2">RobloxPro: </span><span class="chat-text">cuándo sale el dragón?</span></div>
+    <div class="chat-msg"><span class="chat-user c3">Era_Salvaje: </span><span class="chat-text">FURIA MÁXIMA!!!</span></div>
+    <div class="chat-msg"><span class="chat-user c4">DragonFan99: </span><span class="chat-text">suscribí recién!</span></div>
+  </div>
+
+  <!-- BARRA INFERIOR -->
+  <div class="bottom-bar"></div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   ⚙️ CONFIGURACIÓN (cambiá estos números a gusto)
+   ═══════════════════════════════════════════════ */
+const CONFIG = {
+  // Lluvia ligera constante: un meteorito cada X–Y milisegundos
+  meteoroCadaMs: [1300, 3000],
+  // Lluvia fuerte periódica
+  lluviaFuerte: { primeraEnMs: 25000, cadaMs: 70000, duracionMs: 9000, porSegundo: 9 },
+  // Dragón volador
+  dragon: { primeroEnMs: 8000, cadaMs: 50000, duracionMs: 13000, tamano: 380 }
+};
+
+/* ═══════════════════════════════════════════════
+   🌌 MOTOR DE EFECTOS
+   ═══════════════════════════════════════════════ */
+const cv = document.getElementById('fx');
+const cx = cv.getContext('2d');
+const rand = (a, b) => a + Math.random() * (b - a);
+
+const meteoros = [];
+const brasas   = [];   // chispas de meteoritos
+const llamas   = [];   // aliento del dragón
+
+/* ── METEORITOS ── */
+function crearMeteoro(grande) {
+  const vel = grande ? rand(700, 950) : rand(1000, 1500);
+  const ang = rand(0.42, 0.62);                 // inclinación (cae hacia la izquierda)
+  const dx = -Math.sin(ang), dy = Math.cos(ang);
+  const dur = grande ? rand(1.7, 2.3) : rand(0.9, 1.5);
+  // nace arriba o por el borde derecho
+  let x, y;
+  if (Math.random() < 0.75) { x = rand(500, 2300); y = -80; }
+  else                      { x = 2000;            y = rand(-40, 500); }
+  meteoros.push({
+    x, y, dx, dy, vel, dur, edad: 0, grande,
+    largo:  grande ? rand(340, 480) : rand(140, 300),
+    grosor: grande ? rand(9, 14)    : rand(2.2, 4.5)
+  });
+}
+
+function emitirBrasa(x, y, dx, dy, grande) {
+  brasas.push({
+    x, y,
+    vx: dx * rand(20, 80) + rand(-50, 50),
+    vy: dy * rand(20, 80) + rand(-30, 60),
+    vida: rand(0.4, 1.0), edad: 0,
+    r: grande ? rand(1.5, 3.4) : rand(0.8, 2)
+  });
+}
+
+function actualizarMeteoros(dt) {
+  for (let i = meteoros.length - 1; i >= 0; i--) {
+    const m = meteoros[i];
+    m.edad += dt;
+    m.x += m.dx * m.vel * dt;
+    m.y += m.dy * m.vel * dt;
+    if (Math.random() < (m.grande ? 0.9 : 0.4)) emitirBrasa(m.x, m.y, -m.dx, -m.dy, m.grande);
+    if (m.edad >= m.dur) {
+      if (m.grande) for (let k = 0; k < 14; k++) emitirBrasa(m.x, m.y, rand(-1, 1), rand(-1, 0.3), true);
+      meteoros.splice(i, 1);
+    }
+  }
+}
+
+function dibujarMeteoros() {
+  cx.globalCompositeOperation = 'lighter';
+  for (const m of meteoros) {
+    const p = m.edad / m.dur;
+    const a = Math.min(1, p / 0.12) * Math.min(1, (1 - p) / 0.3);   // aparece y se consume
+    if (a <= 0) continue;
+    const ex = m.x - m.dx * m.largo, ey = m.y - m.dy * m.largo;
+    const g = cx.createLinearGradient(m.x, m.y, ex, ey);
+    g.addColorStop(0,    `rgba(255,240,200,${a})`);
+    g.addColorStop(0.25, `rgba(255,140,30,${a * 0.8})`);
+    g.addColorStop(1,    'rgba(160,0,0,0)');
+    cx.strokeStyle = g; cx.lineWidth = m.grosor; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(m.x, m.y); cx.lineTo(ex, ey); cx.stroke();
+
+    const R = m.grosor * 3.6;
+    const rg = cx.createRadialGradient(m.x, m.y, 0, m.x, m.y, R);
+    rg.addColorStop(0,   `rgba(255,255,230,${a})`);
+    rg.addColorStop(0.4, `rgba(255,150,40,${a * 0.6})`);
+    rg.addColorStop(1,   'rgba(255,60,0,0)');
+    cx.fillStyle = rg;
+    cx.beginPath(); cx.arc(m.x, m.y, R, 0, 6.2832); cx.fill();
+  }
+  cx.globalCompositeOperation = 'source-over';
+  // cabeza rocosa de los meteoritos grandes
+  for (const m of meteoros) {
+    if (!m.grande) continue;
+    const p = m.edad / m.dur;
+    const a = Math.min(1, p / 0.12) * Math.min(1, (1 - p) / 0.3);
+    if (a <= 0) continue;
+    cx.fillStyle = `rgba(45,20,12,${a})`;
+    cx.beginPath(); cx.arc(m.x, m.y, m.grosor * 0.75, 0, 6.2832); cx.fill();
+    cx.strokeStyle = `rgba(255,120,30,${a})`; cx.lineWidth = 2;
+    cx.stroke();
+  }
+}
+
+function actualizarDibujarBrasas(dt) {
+  cx.globalCompositeOperation = 'lighter';
+  for (let i = brasas.length - 1; i >= 0; i--) {
+    const b = brasas[i];
+    b.edad += dt;
+    if (b.edad >= b.vida) { brasas.splice(i, 1); continue; }
+    b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 60 * dt;
+    const a = 1 - b.edad / b.vida;
+    cx.fillStyle = `rgba(255,${Math.round(90 + 130 * a)},30,${a})`;
+    cx.beginPath(); cx.arc(b.x, b.y, b.r, 0, 6.2832); cx.fill();
+  }
+  cx.globalCompositeOperation = 'source-over';
+}
+
+/* ── ACTIVAR LLUVIAS ── */
+let lluviaHasta = 0, acumulador = 0, proxMeteoro = performance.now() + 1500;
+
+function lluviaMeteoritos(ms) {              // también sirve desde la consola: lluviaMeteoritos(8000)
+  lluviaHasta = performance.now() + (ms || CONFIG.lluviaFuerte.duracionMs);
+}
+setTimeout(function repetir() {
+  lluviaMeteoritos();
+  setTimeout(repetir, CONFIG.lluviaFuerte.cadaMs);
+}, CONFIG.lluviaFuerte.primeraEnMs);
+
+/* ── DRAGÓN VOLADOR ── */
+const elDragon = document.getElementById('dragon');
+const D = { activo: false, t: 0, dir: 1, yBase: 200, respiraAcum: 0 };
+const DW = CONFIG.dragon.tamano, DH = DW * 296 / 440;
+const BOCA = { fx: 0.9545, fy: 0.3243 };      // posición de la boca dentro del dibujo
+
+function volarDragon() {                      // también sirve desde la consola: volarDragon()
+  if (D.activo) return;
+  D.activo = true; D.t = 0;
+  D.dir = Math.random() < 0.5 ? 1 : -1;
+  D.yBase = rand(160, 300);
+  elDragon.style.display = 'block';
+}
+setTimeout(function repetir() {
+  volarDragon();
+  setTimeout(repetir, CONFIG.dragon.cadaMs);
+}, CONFIG.dragon.primeroEnMs);
+
+function actualizarDragon(dt) {
+  if (!D.activo) return;
+  D.t += dt;
+  const dur = CONFIG.dragon.duracionMs / 1000;
+  const p = D.t / dur;
+  if (p >= 1) { D.activo = false; elDragon.style.display = 'none'; return; }
+
+  const recorrido = 1920 + DW + 120;
+  const velX = recorrido / dur;
+  const avance = -DW - 60 + recorrido * p;
+  const x = D.dir === 1 ? avance : 1920 - DW - avance;         // x = borde izquierdo del dibujo
+  const y = D.yBase + Math.sin(D.t * 2.2) * 38;
+  const vy = Math.cos(D.t * 2.2) * 38 * 2.2;
+  const ang = Math.atan2(vy, velX) * 0.55;                       // cabeceo según la subida/bajada
+
+  elDragon.style.transform =
+    `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) scaleX(${D.dir}) rotate(${(ang * 57.2958).toFixed(2)}deg)`;
+
+  // aliento de fuego: 1.2 s cada 3.4 s (después de 1.5 s de vuelo)
+  const ciclo = (D.t - 1.5) % 3.4;
+  const respira = D.t > 1.5 && ciclo > 2.2;
+  if (respira) {
+    const cxD = x + DW / 2, cyD = y + DH / 2;
+    const lx = (BOCA.fx - 0.5) * DW, ly = (BOCA.fy - 0.5) * DH;
+    const rx = lx * Math.cos(ang) - ly * Math.sin(ang);
+    const ry = lx * Math.sin(ang) + ly * Math.cos(ang);
+    const bx = cxD + D.dir * rx, by = cyD + ry;
+    D.respiraAcum += dt * 150;
+    while (D.respiraAcum >= 1) {
+      D.respiraAcum--;
+      llamas.push({
+        x: bx, y: by,
+        vx: D.dir * Math.cos(ang) * rand(330, 520) + D.dir * velX * 0.6,
+        vy: Math.sin(ang) * 300 + rand(-70, 45),
+        vida: rand(0.55, 0.95), edad: 0, r0: rand(5, 10)
+      });
+    }
+  }
+}
+
+function actualizarDibujarLlamas(dt) {
+  cx.globalCompositeOperation = 'lighter';
+  for (let i = llamas.length - 1; i >= 0; i--) {
+    const f = llamas[i];
+    f.edad += dt;
+    if (f.edad >= f.vida) { llamas.splice(i, 1); continue; }
+    f.x += f.vx * dt; f.y += f.vy * dt; f.vy -= 40 * dt;     // el fuego sube un poco
+    const p = f.edad / f.vida;
+    const r = f.r0 + p * 30;
+    const a = (1 - p) * 0.75;
+    const g = cx.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
+    g.addColorStop(0,   `rgba(255,${Math.round(230 - 120 * p)},110,${a})`);
+    g.addColorStop(0.5, `rgba(255,${Math.round(120 - 70 * p)},20,${a * 0.6})`);
+    g.addColorStop(1,   'rgba(120,0,0,0)');
+    cx.fillStyle = g;
+    cx.beginPath(); cx.arc(f.x, f.y, r, 0, 6.2832); cx.fill();
+  }
+  cx.globalCompositeOperation = 'source-over';
+}
+
+/* ── BUCLE PRINCIPAL ── */
+let ultimo = performance.now();
+function bucle(ahora) {
+  const dt = Math.min(0.05, (ahora - ultimo) / 1000);
+  ultimo = ahora;
+
+  // lluvia ligera constante
+  if (ahora >= proxMeteoro) {
+    crearMeteoro(Math.random() < 0.12);
+    proxMeteoro = ahora + rand(CONFIG.meteoroCadaMs[0], CONFIG.meteoroCadaMs[1]);
+  }
+  // lluvia fuerte
+  if (ahora < lluviaHasta) {
+    acumulador += dt * CONFIG.lluviaFuerte.porSegundo;
+    while (acumulador >= 1) { acumulador--; crearMeteoro(Math.random() < 0.15); }
+  }
+
+  actualizarMeteoros(dt);
+  actualizarDragon(dt);
+
+  cx.clearRect(0, 0, 1920, 1080);
+  dibujarMeteoros();
+  actualizarDibujarBrasas(dt);
+  actualizarDibujarLlamas(dt);
+
+  requestAnimationFrame(bucle);
+}
+requestAnimationFrame(bucle);
+
+/* ═══════════════════════════════════════════════
+   🖥️ Fuera de OBS: escalar a la ventana
+   ═══════════════════════════════════════════════ */
+if (document.documentElement.className === 'fuera') {
+  const st = document.getElementById('stage');
+  const ajustar = () => {
+    const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    st.style.transformOrigin = '0 0';
+    st.style.transform = `scale(${s})`;
+  };
+  ajustar();
+  window.addEventListener('resize', ajustar);
+}
+
+/* ═══════════════════════════════════════════════
+   🎙️ Micrófono + 🔔 Alertas
+   ═══════════════════════════════════════════════ */
+let w = 0, dir = 1;
+setInterval(() => {
+  w += dir * (Math.random() * 18);
+  if (w > 92) dir = -1;
+  if (w < 4) dir = 1;
+  w = Math.max(0, Math.min(100, w));
+  const el = document.getElementById('micfill');
+  if (el) el.style.width = Math.round(w) + '%';
+}, 100);
+
+const alertas = [
+  { icon: '&#128293;', name: 'DragonFan99', msg: 'siguió el canal' },
+  { icon: '&#11088;',  name: 'BestiaFan',   msg: 'donó 100 cristales' },
+  { icon: '&#127381;', name: 'RobloxPro',   msg: 'se suscribió' },
+  { icon: '&#128293;', name: 'Era_Salvaje', msg: 'siguió el canal' },
+];
+let ai = 0;
+const alertEl = document.getElementById('alerta');
+setInterval(() => {
+  ai = (ai + 1) % alertas.length;
+  const a = alertas[ai];
+  alertEl.innerHTML = `<span class="alert-icon">${a.icon}</span><span class="alert-text"><span class="alert-name">${a.name}</span> ${a.msg}</span>`;
+  alertEl.style.animation = 'none';
+  void alertEl.offsetWidth;
+  alertEl.style.animation = 'alertslide 0.4s ease both';
+}, 5000);
+</script>
+</body>
+</html>
